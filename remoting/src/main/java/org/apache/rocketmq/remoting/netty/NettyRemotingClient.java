@@ -180,9 +180,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         }
                     }
                     pipeline.addLast(
+                            //添加事件组
                         defaultEventExecutorGroup,
+                        //注册netty编码器
                         new NettyEncoder(),
+                        //注册netty解码器
                         new NettyDecoder(),
+
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
                         new NettyConnectManageHandler(),
                         new NettyClientHandler());
@@ -193,6 +197,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             @Override
             public void run() {
                 try {
+                    // 扫描废弃的请求
                     NettyRemotingClient.this.scanResponseTable();
                 } catch (Throwable e) {
                     log.error("scanResponseTable exception", e);
@@ -626,6 +631,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            //消息处理
             processMessageReceived(ctx, msg);
         }
     }

@@ -362,8 +362,11 @@ public class RemotingCommand {
     private byte[] headerEncode() {
         this.makeCustomHeaderToNet();
         if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
+            //mq代理编码
             return RocketMQSerializable.rocketMQProtocolEncode(this);
         } else {
+
+            //json编码
             return RemotingSerializable.encode(this);
         }
     }

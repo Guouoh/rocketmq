@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.example.quickstart;
 
-import java.util.List;
-
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -27,17 +24,19 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+
 /**
  * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
  */
-public class Consumer {
+public class consumer1 {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
 
         /*
          * Instantiate with specified consumer group name.
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("guohao_test_producer_name");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("guohao_test_producer_name_1");
 
         /*
          * Specify name server addresses.
@@ -60,7 +59,7 @@ public class Consumer {
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TopicTest", "TagA");
+        consumer.subscribe("TopicTest", "TagB");
 
 
         /*

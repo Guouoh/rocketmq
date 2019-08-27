@@ -64,28 +64,36 @@ public class NamesrvController {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
+        //路由信息管理
         this.routeInfoManager = new RouteInfoManager();
+        //TODO:???
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.configuration = new Configuration(
             log,
             this.namesrvConfig, this.nettyServerConfig
         );
+        //保存namesrv配置的路径
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
     public boolean initialize() {
 
+        //加载配置
         this.kvConfigManager.load();
 
+        //netty配置
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        //初始化netty执行器 8个线程
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        //注册处理器
         this.registerProcessor();
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
+            //定时扫描不活动的broker
             @Override
             public void run() {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
@@ -142,12 +150,13 @@ public class NamesrvController {
     }
 
     private void registerProcessor() {
+        //是否开启集群测试
         if (namesrvConfig.isClusterTest()) {
-
+//            注册集群测试请求处理器=》
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {
-
+//            注册默认的请求处理器
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

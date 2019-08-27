@@ -146,18 +146,22 @@ public class MixAll {
 
     public static void string2File(final String str, final String fileName) throws IOException {
 
+        //要保存的数据存储在临时文件中
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
+        //把原来的数据进行备份
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
         }
 
+        //源文件删除
         File file = new File(fileName);
         file.delete();
 
+        //临时文件进行重命名
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }

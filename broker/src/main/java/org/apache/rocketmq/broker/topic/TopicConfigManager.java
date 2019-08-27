@@ -321,8 +321,10 @@ public class TopicConfigManager extends ConfigManager {
             log.info("create new topic [{}]", topicConfig);
         }
 
+        //用版本号标记数据已经变化
         this.dataVersion.nextVersion();
 
+        //进行持久化
         this.persist();
     }
 

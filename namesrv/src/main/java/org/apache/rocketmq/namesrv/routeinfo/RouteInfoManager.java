@@ -56,10 +56,17 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
+        //指定容量,减少扩容带来的性能影响
+
+        //topicQueue缓存
         this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);
+        //broker地址缓存
         this.brokerAddrTable = new HashMap<String, BrokerData>(128);
+        //集群地址缓存
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
+        //可用的broker地址缓存
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
+        //过滤的服务地址
         this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 

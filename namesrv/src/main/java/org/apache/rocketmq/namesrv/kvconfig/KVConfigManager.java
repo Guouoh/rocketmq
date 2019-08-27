@@ -41,9 +41,11 @@ public class KVConfigManager {
         this.namesrvController = namesrvController;
     }
 
+    //从持久化文件中读取配置文件到内存
     public void load() {
         String content = null;
         try {
+            //将文件读取成字符串
             content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
         } catch (IOException e) {
             log.warn("Load KV config table exception", e);

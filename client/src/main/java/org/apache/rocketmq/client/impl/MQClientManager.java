@@ -46,6 +46,7 @@ public class MQClientManager {
 
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         String clientId = clientConfig.buildMQClientId();
+        //从本地缓存中获取client对象，简单的一般会concurrentHashMap当本地缓存，性能很高
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
             instance =

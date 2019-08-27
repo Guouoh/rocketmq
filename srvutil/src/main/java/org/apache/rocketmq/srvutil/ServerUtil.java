@@ -25,12 +25,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public class ServerUtil {
-
+    //指定namesrv启动的时候加载的配置文件
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("h", "help", false, "Print help");
         opt.setRequired(false);
         options.addOption(opt);
-
+        //控制台输出信息配置
         opt =
             new Option("n", "namesrvAddr", true,
                 "Name server address list, eg: 192.168.0.1:9876;192.168.0.2:9876");
