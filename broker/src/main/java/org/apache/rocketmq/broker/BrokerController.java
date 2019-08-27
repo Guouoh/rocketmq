@@ -866,6 +866,7 @@ public class BrokerController {
             @Override
             public void run() {
                 try {
+                    //匿名内部类如果需要引用到外部类的对象 需要用外部类的类名.this
                     BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
                 } catch (Throwable e) {
                     log.error("registerBrokerAll Exception", e);

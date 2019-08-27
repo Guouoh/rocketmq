@@ -124,16 +124,22 @@ public class BrokerOuterAPI {
         final boolean compressed) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
-        //所有的namesrv地址
+
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
             final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
+            //broker地址
             requestHeader.setBrokerAddr(brokerAddr);
+            //brokerId 0:master 1:slave
             requestHeader.setBrokerId(brokerId);
+            //broker名字
             requestHeader.setBrokerName(brokerName);
+            //集群名字
             requestHeader.setClusterName(clusterName);
+            //master 地址，初次请求时该值为空， slave向Nameserve 注册后返回
             requestHeader.setHaServerAddr(haServerAddr);
+
             requestHeader.setCompressed(compressed);
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
@@ -143,8 +149,9 @@ public class BrokerOuterAPI {
             final byte[] body = requestBody.encode(compressed);
             final int bodyCrc32 = UtilAll.crc32(body);
             requestHeader.setBodyCrc32(bodyCrc32);
+            //异步变同步
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
-            for (final String namesrvAddr : nameServerAddressList) {
+            for (final String namesrvAddr : nameServerAddressList) { //遍历所有的nameSrv列表
                 brokerOuterExecutor.execute(new Runnable() {
                     @Override
                     public void run() {
@@ -193,6 +200,7 @@ public class BrokerOuterAPI {
             return null;
         }
 
+        //发送心跳包
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
         assert response != null;
         switch (response.getCode()) {
