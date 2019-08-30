@@ -175,6 +175,10 @@ public class MQClientInstance {
 
             info.setOrderTopic(true);
         } else {
+            //循环遍历路由 信息 的 QueueData 信息，如果队列 没有写权 限，则继续遍历下 一个
+            //QueueData ；根据 brokerName 找到 brokerData 信息 ，找不 到或没有找到 Master 节点，则
+            //遍历下一个 QueueData ；根据写队列个数，根据 topic＋序号创 建 MessageQueue ，填充
+            //topicPublishlnfo 的 List<QuueMessage＞ 。 完成消息发送的路由查找 。
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
             for (QueueData qd : qds) {
@@ -614,9 +618,11 @@ public class MQClientInstance {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
+                    //如果是默认的 就用默认主题去查询
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
+                        //如果查到路由数据, 则替换路由信息中读写队列个数为消息生产者默认的队列个数（defaultTopicQueueNums）
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
@@ -624,11 +630,12 @@ public class MQClientInstance {
                                 data.setWriteQueueNums(queueNums);
                             }
                         }
-                    } else {
+                    } else {//使用参数 topic 去查询
                         topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     }
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
+                        //如果没有变化 返回false
                         boolean changed = topicRouteDataIsChange(old, topicRouteData);
                         if (!changed) {
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
@@ -636,10 +643,12 @@ public class MQClientInstance {
                             log.info("the topic[{}] route info changed, old[{}] ,new[{}]", topic, old, topicRouteData);
                         }
 
+                        //如果发生了变化
                         if (changed) {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                                //更新broker地址
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
@@ -652,6 +661,7 @@ public class MQClientInstance {
                                     Entry<String, MQProducerInner> entry = it.next();
                                     MQProducerInner impl = entry.getValue();
                                     if (impl != null) {
+                                        //更新消息发送关于路由的信息
                                         impl.updateTopicPublishInfo(topic, publishInfo);
                                     }
                                 }

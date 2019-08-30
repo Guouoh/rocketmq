@@ -42,28 +42,47 @@ import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
 public class MappedFile extends ReferenceResource {
+    //操作系统每页大小 4K
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    //当前JVM实例中MappedFile虚拟内存
     private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
+    //当前JVM实例中MappedFile对象个数
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
+    //当前该文件的写指针，从0开始(内存映射文件中的写指针)
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     //ADD BY ChenYang
+    //当前文件的提交指针，如果开启 transientStorePoolEnable ，
+    // 则数据会存储在TransientStorePool中,然后提交到内存映射 ByteBuffer 中， 再刷写到磁盘 。
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
+    //刷写到磁盘指针，该指针之前的数据持久化到磁盘中
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
+    //文件大小
     protected int fileSize;
+    //文件通道
     protected FileChannel fileChannel;
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
+     * 堆内存 ByteBuffer ， 如果不为空，数据首先将存储在该
+     * Buffer 中， 然后提交到 MappedFile 对应的内存映射 文 件 Buffer 。 transientStorePoolEnable
+     * 为 true 时不为空 。
      */
     protected ByteBuffer writeBuffer = null;
+    //堆内存池， transientStorePoolEnable为true时启用 。
     protected TransientStorePool transientStorePool = null;
+    //文件名称
     private String fileName;
+    //该文件的初始偏移量
     private long fileFromOffset;
+    //物理文件
     private File file;
+    //物理文件对应的内存映射 Buffer
     private MappedByteBuffer mappedByteBuffer;
+//    文件最后一次内容写入时间
     private volatile long storeTimestamp = 0;
+    //是否是 MappedFileQueue 队列中第一个文件
     private boolean firstCreateInQueue = false;
 
     public MappedFile() {
@@ -154,12 +173,14 @@ public class MappedFile extends ReferenceResource {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.file = new File(fileName);
+        //初始化为文件名 也就是说文件名为文件的起始偏移量
         this.fileFromOffset = Long.parseLong(this.file.getName());
         boolean ok = false;
 
         ensureDirOK(this.file.getParent());
 
         try {
+            //创建读写文件通道并将文件内 容使用NIO的内存映射Buffer将文件映射到内存中
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
             this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
             TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(fileSize);
@@ -202,8 +223,11 @@ public class MappedFile extends ReferenceResource {
         assert messageExt != null;
         assert cb != null;
 
+        //获取当前MappedFile的写指针
         int currentPos = this.wrotePosition.get();
 
+        //如果 currentPos 小于文件大小，通过 slice（）方法创建一个与 MappedFile 的共享 内
+        //存区，并设置 position 为当前指针 。
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);

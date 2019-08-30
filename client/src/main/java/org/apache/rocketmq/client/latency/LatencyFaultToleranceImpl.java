@@ -32,6 +32,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
         FaultItem old = this.faultItemTable.get(name);
+        //如果不存在
         if (null == old) {
             final FaultItem faultItem = new FaultItem(name);
             faultItem.setCurrentLatency(currentLatency);
@@ -72,14 +73,17 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         if (!tmpList.isEmpty()) {
+            //打乱list的顺序
             Collections.shuffle(tmpList);
 
+            //FaultItem重写了compareTo方法
             Collections.sort(tmpList);
 
+            //取一半
             final int half = tmpList.size() / 2;
-            if (half <= 0) {
+            if (half <= 0) {//只有一个元素的情况
                 return tmpList.get(0).getName();
-            } else {
+            } else {//对hal取余 相当于随机取出一个
                 final int i = this.whichItemWorst.getAndIncrement() % half;
                 return tmpList.get(i).getName();
             }
@@ -97,8 +101,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     }
 
     class FaultItem implements Comparable<FaultItem> {
+        //brokerName
         private final String name;
+        //延迟容忍时长 使用volatile修饰
         private volatile long currentLatency;
+        //broker不可用时长结束的时刻  使用volatile修饰
         private volatile long startTimestamp;
 
         public FaultItem(final String name) {
@@ -106,21 +113,26 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         @Override
-        public int compareTo(final FaultItem other) {
+        public int compareTo(final FaultItem other) {//升序
+            // true---false  或者 false---true
             if (this.isAvailable() != other.isAvailable()) {
+                //当前元素比较小
                 if (this.isAvailable())
                     return -1;
 
+                //说明当前元素比较大
                 if (other.isAvailable())
                     return 1;
             }
 
+            //按照延迟容忍时长 从小到大排序
             if (this.currentLatency < other.currentLatency)
                 return -1;
             else if (this.currentLatency > other.currentLatency) {
                 return 1;
             }
 
+            //按照不可用时长结束的时刻 从小到大排序
             if (this.startTimestamp < other.startTimestamp)
                 return -1;
             else if (this.startTimestamp > other.startTimestamp) {
@@ -131,6 +143,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         public boolean isAvailable() {
+            //如果当前时间比broker不可用时长结束的时刻超前 ,说明broker是可用的
             return (System.currentTimeMillis() - startTimestamp) >= 0;
         }
 

@@ -44,7 +44,7 @@ public interface MQAdmin {
      * @param queueNum topic's queue number
      * @param topicSysFlag topic system flag
      */
-    void createTopic(String key, String newTopic, int queueNum, int topicSysFlag)
+    void createTopic(String key, String newTopic/*主题名称*/, int queueNum/*队列数量*/, int topicSysFlag/*主题系统标签, 默认为0*/)
         throws MQClientException;
 
     /**

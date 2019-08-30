@@ -334,16 +334,27 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /***
+     * 路由发现
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
+        //调用getRouteInfoManager的方法，从路由表topicQueueTable、brokerAddrTable filterServerTable
+        //中分别填充TopicRouteData中的List<QueueData＞、List<BrokerData＞和filterServer地址表
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {
+            //如果是顺序消息
             if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
+                //从NameServer KVconfig 中获取关于顺序消息相关的配置填充路由信息
                 String orderTopicConf =
                     this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
                         requestHeader.getTopic());
@@ -357,6 +368,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        //如果没有对应的路由  则用TOPIC_NOT_EXIST 表示没有找到对应的路由
         response.setCode(ResponseCode.TOPIC_NOT_EXIST);
         response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
             + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));

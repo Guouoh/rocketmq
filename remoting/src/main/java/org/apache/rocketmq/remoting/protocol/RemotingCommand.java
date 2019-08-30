@@ -69,17 +69,24 @@ public class RemotingCommand {
         }
     }
 
+    //请求命令码 请求命令类型
     private int code;
+    //
     private LanguageCode language = LanguageCode.JAVA;
     private int version = 0;
+//    客户端请求序号
     private int opaque = requestId.getAndIncrement();
     private int flag = 0;
+    //描述
     private String remark;
+    //扩展属性
     private HashMap<String, String> extFields;
+    //每个请求对应的请求头信息
     private transient CommandCustomHeader customHeader;
 
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
+    //信息体
     private transient byte[] body;
 
     protected RemotingCommand() {

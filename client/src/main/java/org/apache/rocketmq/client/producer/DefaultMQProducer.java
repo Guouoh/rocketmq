@@ -96,6 +96,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * 消息体超过4k则启用压缩
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
@@ -104,6 +105,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     * 同 步方式发送消息重试次数，默认为 2 ，总共执行 3 次
      */
     private int retryTimesWhenSendFailed = 2;
 
@@ -117,6 +119,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Indicate whether to retry another broker on sending failure internally.
+     * 消息重试时选择另外一个Broker时是否不等待存储结果就返回,默认为 false 。
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
@@ -334,6 +337,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(
         Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        //校验消息,主题名称、消息体不能为空、消息长度不能等于0且默认不能超过允许发送消息的最大长度4M
         Validators.checkMessage(msg, this);
         msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg);
@@ -783,8 +787,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     @Override
-    public SendResult send(
+    public SendResult send(//批量发送消息
         Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        //batch(msgs) 封装消息
         return this.defaultMQProducerImpl.send(batch(msgs));
     }
 

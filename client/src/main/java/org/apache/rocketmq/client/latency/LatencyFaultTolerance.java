@@ -18,11 +18,22 @@
 package org.apache.rocketmq.client.latency;
 
 public interface LatencyFaultTolerance<T> {
+    /**
+     * 更新不可用条目
+     * @param name brokerName
+     * @param currentLatency 消息发送故障延迟时间
+     * @param notAvailableDuration 不可用持续时长
+     */
     void updateFaultItem(final T name, final long currentLatency, final long notAvailableDuration);
 
+    //是否可用
     boolean isAvailable(final T name);
 
     void remove(final T name);
 
+    /**
+     * 尝试从规避的 Broker 中选择一个可用的 Broker ，如果没有找到，将返回 null
+     * @return
+     */
     T pickOneAtLeast();
 }
