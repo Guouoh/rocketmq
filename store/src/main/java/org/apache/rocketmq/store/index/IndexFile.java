@@ -89,10 +89,19 @@ public class IndexFile {
         return this.mappedFile.destroy(intervalForcibly);
     }
 
+    /**
+     *
+     * @param key 消息索引的key
+     * @param phyOffset 物理偏移量
+     * @param storeTimestamp 存储时间
+     * @return
+     */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
+
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key);
             int slotPos = keyHash % this.hashSlotNum;
+            //hashCode对应的hash槽
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
             FileLock fileLock = null;
@@ -101,11 +110,13 @@ public class IndexFile {
 
                 // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
                 // false);
+                //读取hash槽中存储的数据，如果hash槽存储的数据小于0或大于当前索引文件中的索引条目格式，则将slotValue设置为0
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
                 }
 
+                //计算待存储消息的时间戳与第一条消息时间戳的差值，并转换成秒
                 long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
 
                 timeDiff = timeDiff / 1000;
@@ -118,17 +129,24 @@ public class IndexFile {
                     timeDiff = 0;
                 }
 
+                //将条目信息存储在IndexFile中 。
+                //计算新添加条目的起始物理偏移量 ， 等于头部字节长度＋ hash槽数量 ＊ 单个 hash槽大小（4 个字节）＋当前 Index 条目个数＊单个 Index 条目大小（20 个字节）
                 int absIndexPos =
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
 
+                //依次将hashcode、消息物理偏移量、消息存储时间戳与索引文件时间戳、当前
+                //Hash槽的值存入MappedByteBuffer中
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
 
+                //将当前 Index 中包含 的条 目 数量存入 Hash 槽中 ，将覆盖原先 Hash 槽的值
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
+                //更新文件索引头信息,如果当前文件只包含一个条目，更新 beginPhyOffset 与
+                //beginTimestamp 、更新 endPyhOffset 、endTimestamp 、当前文件使用索引条目等信息
                 if (this.indexHeader.getIndexCount() <= 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
