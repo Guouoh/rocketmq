@@ -60,7 +60,8 @@ public class Consumer {
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TopicTest", "TagA");
+        consumer.subscribe("TopicTest", "TagA || TagB");
+        consumer.fetchSubscribeMessageQueues("TopicTest");
 
 
         /*

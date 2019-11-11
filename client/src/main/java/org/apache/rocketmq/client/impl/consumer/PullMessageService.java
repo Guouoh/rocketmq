@@ -90,8 +90,12 @@ public class PullMessageService extends ServiceThread {
     public void run() {
         log.info(this.getServiceName() + " service started");
 
-        while (!this.isStopped()) {
+        while (!this.isStopped()) {//这是一种通用 的设计技巧， stopped 声明为 volatil巳， 每执
+            //行一次业务逻辑检测一下其运行状态，可以通过其他线程将 stopped 设置为 true 从而停止该
+            //线程 。
             try {
+                //从 pullRequestQueue 中获取 一 个 Pul!R巳quest 消息拉取任务，如果 pul!RequestQueue
+                //为空，则线程将阻塞，直到有拉取任务被放入 。
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {

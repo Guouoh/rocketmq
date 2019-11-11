@@ -190,10 +190,13 @@ public class DefaultMessageStore implements MessageStore {
         boolean result = true;
 
         try {
+            //判断上 一次退出是否正常 。 其实现机制是Broker在启动时创建$｛ ROCKETMQ_HOME} /store/abort文件，在退出时通过注册JVM钩子函数删除abort文件 如果下一次启
+            //动时存在 abort 文件 。 说明 Broker 是异常退出的， Commitlog 与 Consumequeue 数据有可能不一致，需要进行修复 。
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
             if (null != scheduleMessageService) {
+                //加载延迟队列
                 result = result && this.scheduleMessageService.load();
             }
 
@@ -204,11 +207,14 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.loadConsumeQueue();
 
             if (result) {
+                //加载监测点
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
 
+                //加载索引文件 如果上次异常退出 ，而且索引文件上次刷盘时间小于该索引文件最大的消息时间戳该文件将立 即销毁 。
                 this.indexService.load(lastExitOK);
 
+//                根据 Broker 是否是正常停止执行不同的恢复策略
                 this.recover(lastExitOK);
 
                 log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
@@ -1352,6 +1358,9 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
 
+        //恢复 ConsumeQueue 文件后，将在 CommitLog 实例中保存每个消息消费队列 当
+        //前的存储逻辑偏移量， 这也是消息中不仅存储主题 、 消息队列 ID 还存储了消息队列偏移量
+        //的关键所在 。
         this.recoverTopicQueueTable();
     }
 
@@ -1389,6 +1398,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void recoverTopicQueueTable() {
+
         HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<String, Long>(1024);
         long minPhyOffset = this.commitLog.getMinOffset();
         for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
@@ -1515,6 +1525,7 @@ public class DefaultMessageStore implements MessageStore {
 
         @Override
         public void dispatch(DispatchRequest request) {
+            //如果 messsagelndexEnable设置为true,则调用IndexService#buildlndex构建Hash索引
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
                 DefaultMessageStore.this.indexService.buildIndex(request);
             }
@@ -1827,6 +1838,9 @@ public class DefaultMessageStore implements MessageStore {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
+        /**
+         * 消息消费转发
+         */
         private void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
@@ -1840,6 +1854,7 @@ public class DefaultMessageStore implements MessageStore {
                     break;
                 }
 
+                //返回 reputFromOffset 偏移量开始的全部有效数据（commitlog 文件） 。 然后循环读每一条数据
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
@@ -1852,6 +1867,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
+                                    //
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()

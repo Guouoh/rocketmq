@@ -174,8 +174,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int consumeConcurrentlyMaxSpan = 2000;
 
     /**
-     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default,
-     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     * Flow control threshold:门槛 on queue level, each message queue will cache at most 1000 messages by default,
+     * Consider the {@code pullBatchSize}, the instantaneous:瞬时 value may exceed;超过 the limit
      */
     private int pullThresholdForQueue = 1000;
 

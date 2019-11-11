@@ -204,11 +204,23 @@ public class IndexFile {
         return result;
     }
 
+    /**
+     * 根据索引key查找消息
+     * @param phyOffsets 查找到的消息物理偏移量
+     * @param key 索引key
+     * @param maxNum 本次查找最大消息数
+     * @param begin 开始时间
+     * @param end 结束时间
+     * @param lock
+     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
         final long begin, final long end, boolean lock) {
         if (this.mappedFile.hold()) {
+            //算出key的hash值
             int keyHash = indexKeyHashMethod(key);
+            //算出hash值对应的哈希槽的位置
             int slotPos = keyHash % this.hashSlotNum;
+            //绝对hash槽的位置
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
             FileLock fileLock = null;
@@ -224,6 +236,7 @@ public class IndexFile {
                 // fileLock = null;
                 // }
 
+                //如果对应的Hash槽中存储的数据小于1或大于当前索引条目个数则表示该HashCode 没有对应的条目,直接返回
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()
                     || this.indexHeader.getIndexCount() <= 1) {
                 } else {
