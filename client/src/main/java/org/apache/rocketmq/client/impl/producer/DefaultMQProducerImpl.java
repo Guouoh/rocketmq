@@ -97,7 +97,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final RPCHook rpcHook;
     protected BlockingQueue<Runnable> checkRequestQueue;
     protected ExecutorService checkExecutor;
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
+    private ServiceState serviceState111 = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
@@ -170,9 +170,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void start(final boolean startFactory) throws MQClientException {
-        switch (this.serviceState) {
+        switch (this.serviceState111) {
             case CREATE_JUST:
-                this.serviceState = ServiceState.START_FAILED;
+                this.serviceState111 = ServiceState.START_FAILED;
 
                 //检查producerGroup是否合法
                 this.checkConfig();
@@ -187,7 +187,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 //向MQClientlnstance 注册，将当前生产者加入到 MQClientlnstance管理中，方便后续调用网络请求、进行心跳检测等
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
                 if (!registerOK) {
-                    this.serviceState = ServiceState.CREATE_JUST;
+                    this.serviceState111 = ServiceState.CREATE_JUST;
                     throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
@@ -202,13 +202,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
                     this.defaultMQProducer.isSendMessageWithVIPChannel());
-                this.serviceState = ServiceState.RUNNING;
+                this.serviceState111 = ServiceState.RUNNING;
                 break;
             case RUNNING:
             case START_FAILED:
             case SHUTDOWN_ALREADY:
                 throw new MQClientException("The producer service state not OK, maybe started once, "
-                    + this.serviceState
+                    + this.serviceState111
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
                     null);
             default:
@@ -236,7 +236,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void shutdown(final boolean shutdownFactory) {
-        switch (this.serviceState) {
+        switch (this.serviceState111) {
             case CREATE_JUST:
                 break;
             case RUNNING:
@@ -247,7 +247,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
-                this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+                this.serviceState111 = ServiceState.SHUTDOWN_ALREADY;
                 break;
             case SHUTDOWN_ALREADY:
                 break;
@@ -412,9 +412,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void makeSureStateOK() throws MQClientException {
-        if (this.serviceState != ServiceState.RUNNING) {
+        if (this.serviceState111 != ServiceState.RUNNING) {
             throw new MQClientException("The producer service state not OK, "
-                + this.serviceState
+                + this.serviceState111
                 + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
                 null);
         }
@@ -532,7 +532,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
-        //查找主题路由信息
+        //查找主题路由信息 T
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
@@ -544,6 +544,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
+                //选择消息队列
+//                this.mqFaultStrategy.setSendLatencyFaultEnable(true);
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
@@ -560,6 +562,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             break;
                         }
 
+                        //消息发送
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
@@ -821,7 +824,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 SendResult sendResult = null;
-                switch (communicationMode) { //根据消息发送模式,选择不同的网络传输
+                //根据消息发送模式,选择不同的网络传输
+                switch (communicationMode) {
                     case ASYNC:
                         Message tmpMessage = msg;
                         boolean messageCloned = false;
@@ -846,6 +850,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         if (timeout < costTimeAsync) {
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
+                        //发送消息
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
                             mq.getBrokerName(),
@@ -1362,12 +1367,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.zipCompressLevel = zipCompressLevel;
     }
 
-    public ServiceState getServiceState() {
-        return serviceState;
+    public ServiceState getServiceState111() {
+        return serviceState111;
     }
 
-    public void setServiceState(ServiceState serviceState) {
-        this.serviceState = serviceState;
+    public void setServiceState111(ServiceState serviceState111) {
+        this.serviceState111 = serviceState111;
     }
 
     public long[] getNotAvailableDuration() {

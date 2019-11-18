@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
  */
 public class MQFaultStrategy {
     private final static InternalLogger log = ClientLogger.getLog();
-    //latency:潜伏 潜在因素   潜在故障容忍
+    //latency:潜伏 潜在因素   潜在故障容忍 存储的不可用的broker
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
     private boolean sendLatencyFaultEnable = false;
@@ -62,7 +62,7 @@ public class MQFaultStrategy {
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
-        if (this.sendLatencyFaultEnable) {
+        if (this.sendLatencyFaultEnable) {//默认不启用broker故障延迟机制
             try {
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
@@ -71,7 +71,7 @@ public class MQFaultStrategy {
                         pos = 0;
                     //根据对消息队列进行轮询获取一个消息队列
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                    //验证消息队列是否可用, 如果可用,返回队列
+                    //验证消息队列是否可用, 如果可用,返回队列 latencyFaultTolerance 存储的不可用的broker的名字
                     if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
                         // 非失败重试，直接返回到的队列
                         // 失败重试的情况，如果和选择的队列是上次重试是一样的，则返回

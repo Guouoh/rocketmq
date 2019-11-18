@@ -245,7 +245,7 @@ public class MQClientInstance {
                     this.pullMessageService.start();
                     // Start rebalance service 负载均衡服务
                     this.rebalanceService.start();
-                    // Start push service 启动push服务
+                    // Start push service 启动push服务 注意这里的DefaultMQProducerImpl是在MQclientInstance中实例化的,是新的实例
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
@@ -620,8 +620,9 @@ public class MQClientInstance {
                     TopicRouteData topicRouteData;
                     //如果是默认的 就用默认主题去查询
                     if (isDefault && defaultMQProducer != null) {
+                        //TODO:因为超时没有调试完
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
-                            1000 * 3);
+                            1000000 * 3);
                         //如果查到路由数据, 则替换路由信息中读写队列个数为消息生产者默认的队列个数（defaultTopicQueueNums）
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
@@ -631,7 +632,7 @@ public class MQClientInstance {
                             }
                         }
                     } else {//使用参数 topic 去查询
-                        topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                        topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000000 * 3);
                     }
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);

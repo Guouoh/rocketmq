@@ -61,14 +61,14 @@ public class RouteInfoManager {
     //Broker 集群信息，存储集群中所有 Broker名称
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     //Broker 状态信息 。 NameServer 每次收到心跳包时会替换该信息
-    private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    private final HashMap<String/* brokerAddr 即 -> IP地址:端口*/, BrokerLiveInfo> brokerLiveTable;
     //Broker 上的 FilterServer 列表，用于类模式消息过滤
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     /**
      * RocketMQ路由注册是通过Broker与 NameServer的心跳功能实现的 。Broker启动时
      * 向集群中所有的 NameServr发送心跳语句每隔30s向集群中所有 NameServer 发送心
-     * 跳包， NameServer 收到 Broker 心 跳包时会更新 brokerLiveTable缓存中 BrokerLivelnfo 的
+     * 跳包， NameServer 收到 Broker心跳包时会更新 brokerLiveTable缓存中 BrokerLivelnfo 的
      * lastUpdateTimestamp ，然后 NameServer每隔10s扫描 brokerLiveTable ，如果连续120s 没
      * 有收到心跳包，NameServer将移除该Broker的路由信息同时关闭 Socket 连接 。
      */
@@ -123,6 +123,18 @@ public class RouteInfoManager {
         return topicList.encode();
     }
 
+    /**
+     * V3_0_11版本之后的注册broker方法
+     * @param clusterName
+     * @param brokerAddr
+     * @param brokerName
+     * @param brokerId
+     * @param haServerAddr
+     * @param topicConfigWrapper
+     * @param filterServerList
+     * @param channel
+     * @return
+     */
     public RegisterBrokerResult registerBroker(
         final String clusterName,
         final String brokerAddr,
@@ -480,7 +492,7 @@ public class RouteInfoManager {
         if (channel != null) {
             try {
                 try {
-                    //路由表维护过程中需要申请写锁
+                    //路由表维护过程中需要申请读锁
                     this.lock.readLock().lockInterruptibly();
                     Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
                         this.brokerLiveTable.entrySet().iterator();

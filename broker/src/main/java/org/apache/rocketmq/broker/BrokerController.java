@@ -861,6 +861,7 @@ public class BrokerController {
 
         this.registerBrokerAll(true, false, true);
 
+        //路由注册,定时执行
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -931,7 +932,7 @@ public class BrokerController {
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
-        //向所有的broker进行注册
+        //向所有的nameserver注册broker
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),

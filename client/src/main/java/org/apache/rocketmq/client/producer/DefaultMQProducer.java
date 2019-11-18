@@ -63,7 +63,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private final InternalLogger log = ClientLogger.getLog();
 
     /**
-     * Wrapping internal implementations for virtually all methods presented in this class.
+     * Wrapping internal implementations for virtually(几乎,实际上) all methods presented in this class.
+     * 用transient修饰的变量不参与序列化
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
 
@@ -76,6 +77,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
+     *
+     * 同一类Producer的集合，这类Producer发送同一类消息且发送逻辑一致。如果发送的是事物消息且原始生产者在发送之后崩溃，
+     * 则Broker服务器会联系同一生产者组的其他生产者实例以提交或回溯消费。
      */
     private String producerGroup;
 
@@ -96,7 +100,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
-     * 消息体超过4k则启用压缩
+     * 消息体超过4k则启用压缩,字节单位
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
@@ -105,7 +109,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
-     * 同 步方式发送消息重试次数，默认为 2 ，总共执行 3 次
+     * 同步方式发送消息重试次数，默认为 2 ，总共执行 3 次
      */
     private int retryTimesWhenSendFailed = 2;
 
@@ -831,6 +835,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.setAsyncSenderExecutor(asyncSenderExecutor);
     }
 
+    /**
+     * 将消息封装为批量消息
+     * @param msgs
+     * @return
+     * @throws MQClientException
+     */
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
         MessageBatch msgBatch;
         try {
